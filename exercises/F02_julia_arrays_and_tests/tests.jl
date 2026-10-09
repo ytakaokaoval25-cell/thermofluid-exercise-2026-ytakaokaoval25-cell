@@ -24,8 +24,9 @@ end
 
 # 必須テストが扱わない条件を選び、期待値を自分で決める。
 @testset "F02 自作テスト" begin
-    # TODO(自作): 戻り値の型、別の数学的性質、または必須とは異なる不正入力から一つ選び、入力と期待値を自分で書く。
-    # 整数入力でも平均や偏差は小数になり得る。入力と同じ型かではなく、計算結果を格納できるかを考える。
-    # Float32を使う場合は、値の一致とtypeof／eltypeによる型の確認を区別する。
-    @test false
+    integer_values = [1, 2]
+
+    @test F02JuliaArraysAndTests.mean_temperature(integer_values) == 1.5
+    @test F02JuliaArraysAndTests.temperature_anomaly(integer_values) == [-0.5, 0.5]
+    @test eltype(F02JuliaArraysAndTests.temperature_anomaly(integer_values)) <: AbstractFloat
 end
