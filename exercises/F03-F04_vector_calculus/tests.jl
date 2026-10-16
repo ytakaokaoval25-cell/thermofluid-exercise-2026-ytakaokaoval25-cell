@@ -82,6 +82,6 @@ end
 
 # 必須テストが扱わない条件を選び、期待値を自分で決める。
 @testset "F03-F04 自作テスト" begin
-    # TODO(自作): 別の関数、評価点、または入力条件を選び、どの実装ミスを検出するか説明できるテストを一つ書く。F03単独の別テストは作らない。
-    @test false
+    # h = 0を拒否しない実装では差分商を計算できないため、入力検証の欠落を検出する。
+    @test_throws ArgumentError centered_difference(identity, 0.0, 0.0)
 end
