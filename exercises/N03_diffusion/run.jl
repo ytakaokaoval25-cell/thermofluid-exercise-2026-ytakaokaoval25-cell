@@ -104,8 +104,9 @@ function apply_boundary!(u_new, u_old, r::Real; boundary = :fixed)
         u_new[1] = 0.0
         u_new[end] = 0.0
     else
-        # TODO(N03): 旧配列を用い、半セルに対応する係数で両端を更新する。
-        error("未実装 N03: apply_boundary!")
+        # 鏡映ゴースト点により、端点の半セルでは内側との差を2倍して更新する。
+        u_new[1] = u_old[1] + 2r * (u_old[2] - u_old[1])
+        u_new[end] = u_old[end] + 2r * (u_old[end-1] - u_old[end])
     end
 
     return u_new
@@ -154,8 +155,7 @@ function diffusion_step!(
 
     # 内部点はすべて同じ旧配列から更新する。
     for i in 2:length(u_old)-1
-        # TODO(N03): 旧配列だけから内部点の次時刻値を計算する。
-        error("未実装 N03: diffusion_step!")
+        u_new[i] = u_old[i] + r * (u_old[i+1] - 2u_old[i] + u_old[i-1])
     end
 
     # 内部点の後で両端を更新し、次時刻の温度配列を完成させる。
@@ -192,8 +192,8 @@ function thermal_content(u, dx::Real)
     all(isfinite, u) || throw(ArgumentError("温度を有限値にしてください"))
     positive_finite(dx, "dx")
 
-    # TODO(N03): 台形則の積分を返す。
-    error("未実装 N03: thermal_content")
+    # 両端へ半分、内部点へ1の重みを付ける台形則で積分する。
+    return dx * (sum(u) - (u[1] + u[end]) / 2)
 end
 
 """
