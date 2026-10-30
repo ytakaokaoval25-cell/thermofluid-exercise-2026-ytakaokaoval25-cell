@@ -59,11 +59,44 @@ import .N03Diffusion
 end
 
 @testset "N03 自作テスト" begin
-    # TODO(自作): 非対称な非定数配列を複数ステップ進め、断熱の台形則熱量保存を確認する。
-    # 初期熱量を独立に計算し、点数・ステップ数・値の大きさから許容誤差を決める。
-    @test false
+    @testset "断熱境界の熱量保存" begin
+        # 端点も互いに異なる非対称な7点配列を、安定なr=0.2で25ステップ進める。
+        u_initial = [0.3, 1.7, 0.8, 2.4, 1.1, 3.2, 0.6]
+        u_old = copy(u_initial)
+        u_new = similar(u_old)
+        dx, dt, diffusivity = 1.0, 0.2, 1.0
+        steps = 25
 
-    # TODO(自作): 固定温度の正弦解析解と41・81・161点の数値解を同時刻・同じfoで比較する。
-    # 誤差の減少と観測次数を確認し、指標・許容範囲・検出限界を説明する。
-    @test false
+        # 実装対象のthermal_contentを使わず、テスト側で台形則の初期熱量を求める。
+        initial_heat = dx * (
+            sum(u_initial[2:end-1]) + (u_initial[1] + u_initial[end]) / 2
+        )
+        for _ in 1:steps
+            N03Diffusion.diffusion_step!(
+                u_new, u_old, dt, dx, diffusivity; boundary=:insulated,
+            )
+            u_old, u_new = u_new, u_old
+        end
+
+        # 各点・各ステップの丸め誤差の蓄積に余裕を持たせた絶対許容誤差。
+        atol = 100eps(Float64) * length(u_initial) * steps * maximum(abs, u_initial)
+        @test isapprox(
+            N03Diffusion.thermal_content(u_old, dx), initial_heat; atol, rtol=0,
+        )
+    end
+
+    @testset "固定温度の解析解と格子収束" begin
+        # 同じ時刻・要求Fourier数で格子だけを細かくし、最大絶対誤差を比較する。
+        grids = (41, 81, 161)
+        runs = [N03Diffusion.simulate(; boundary=:fixed, nx, initial=:mode) for nx in grids]
+        errors = [maximum(abs.(
+            r.u - N03Diffusion.analytic_solution(
+                r.x, r.t_final; boundary=:fixed, diffusivity=r.diffusivity,
+            )
+        )) for r in runs]
+        orders = log2.(errors[1:2] ./ errors[2:3])
+
+        @test errors[1] > errors[2] > errors[3] > 0
+        @test all(1.8 .< orders .< 2.2)
+    end
 end
