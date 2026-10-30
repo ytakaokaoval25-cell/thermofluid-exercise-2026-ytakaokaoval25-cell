@@ -43,10 +43,37 @@ N04.validate_model(N04.SELECTED_MODEL)
     end
 end
 @testset "N04 自作テスト" begin
-    # TODO(自作): 非対称な非定数配列を複数ステップ進め、周期積分の保存を確認する。
-    # 初期積分を独立に計算し、点数・ステップ数・値の大きさから許容誤差を説明する。
-    @test false # TODO(N04): 複数ステップ保存
-    # TODO(自作): 選択モデルの解析解と40・80・160点の誤差・観測次数を確認する。
-    # 誤差の指標、同じ最終時刻、0.8〜1.2の次数範囲、検出できない誤りも説明する。
-    @test false # TODO(N04): 格子収束
+    @testset "周期積分の複数ステップ保存" begin
+        u_initial = [1.1, 1.8, 1.3, 2.2, 1.5, 2.0, 1.4]
+        u_old = copy(u_initial)
+        u_new = similar(u_old)
+        dx, dt, diffusivity = 1.0, 0.1, 0.2
+        steps = 30
+        initial_integral = dx * sum(u_initial)
+
+        for _ in 1:steps
+            N04.advection_diffusion_step!(u_new, u_old, dt, dx, diffusivity)
+            u_old, u_new = u_new, u_old
+        end
+
+        atol = 100eps(Float64) * length(u_initial) * steps * maximum(abs, u_initial)
+        @test isapprox(dx * sum(u_old), initial_integral; atol, rtol=0)
+    end
+
+    @testset "線形モデルの解析解と格子収束" begin
+        grids = (40, 80, 160)
+        runs = [N04.simulate(; nx, initial=:mode) for nx in grids]
+        errors = [maximum(abs.(
+            r.u - N04.analytic_solution(
+                r.x, r.t_final;
+                model=N04.SELECTED_MODEL,
+                diffusivity=r.diffusivity,
+                speed=r.speed,
+            )
+        )) for r in runs]
+        orders = log2.(errors[1:2] ./ errors[2:3])
+
+        @test errors[1] > errors[2] > errors[3] > 0
+        @test all(0.8 .< orders .< 1.2)
+    end
 end

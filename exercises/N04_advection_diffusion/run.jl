@@ -1,7 +1,7 @@
 # N04: SELECTED_MODELを選び、選択流束・合成刻み・周期更新の3か所を実装する。
 # 読む順: 流束 → 刻み → 1ステップ → simulate → main。入力検証・解析解・描画は提供済み。
 module N04AdvectionDiffusion
-const SELECTED_MODEL = :unselected
+const SELECTED_MODEL = :linear
 include("provided_support.jl")
 export SELECTED_MODEL,
     advective_flux,
@@ -41,8 +41,7 @@ function advective_flux(u; model = SELECTED_MODEL, speed = 1.0)
     finite_real(u, "u")
     validate_speed(model, speed)
     if model == :linear
-        # TODO(N04): 線形を選んだ場合だけ実装する。
-        error("未実装 N04: advective_flux (linear)")
+        return speed * u
     else
         nonnegative_finite(u, "非線形移流のu")
         # TODO(N04): 非線形を選んだ場合だけ実装する。
@@ -75,8 +74,9 @@ end
 """
 function stable_timestep(max_speed, dx, diffusivity; safety = 0.8)
     validate_timestep_inputs(max_speed, dx, diffusivity, safety)
-    # TODO(N04): 合成条件から刻みを返す。
-    error("未実装 N04: stable_timestep")
+    return checked_timestep(
+        safety / (max_speed / dx + 2diffusivity / dx^2),
+    )
 end
 
 """
@@ -129,8 +129,17 @@ function advection_diffusion_step!(
     # 計算や書込みの前に、入力条件をまとめて確認する。
     validate_step(u_new, u_old, dt, dx, diffusivity, model, advection, speed)
     for i in eachindex(u_old)
-        # TODO(N04): 周期の左右隣接を使い、移流と拡散を同じ旧配列から足す。
-        error("未実装 N04: advection_diffusion_step!")
+        i_minus = i == firstindex(u_old) ? lastindex(u_old) : i - 1
+        i_plus = i == lastindex(u_old) ? firstindex(u_old) : i + 1
+        advection_term = advection ?
+            -(dt / dx) * (
+                advective_flux(u_old[i]; model, speed) -
+                advective_flux(u_old[i_minus]; model, speed)
+            ) : 0.0
+        diffusion_term = diffusivity * dt / dx^2 * (
+            u_old[i_plus] - 2u_old[i] + u_old[i_minus]
+        )
+        u_new[i] = u_old[i] + advection_term + diffusion_term
     end
     return u_new
 end
