@@ -5,6 +5,7 @@
 
 module N01LinearAdvection
 
+import ThermofluidExercise
 include("provided_support.jl")
 
 export rectangular_initial_condition, apply_boundary!, upwind_step!, centered_step!
@@ -84,16 +85,7 @@ end
 N01授業の風上差分と陽Euler法を参照する。配布状態では内部点の未実装エラーで停止する。
 """
 function upwind_step!(u_new, u_old, c::Real, dt::Real, dx::Real)
-    # 計算や書込みの前に、入力条件をまとめて確認する。
-    validate_step_inputs(u_new, u_old, c, dt, dx)
-    # courantは1ステップで進む格子幅の割合を表すCFL数です。
-    courant = c * dt / dx
-    # copyto!で古い値を複製し、内部を更新する間も両端点の値を保ちます。
-    copyto!(u_new, u_old)
-    for i in 2:(length(u_old) - 1)
-        u_new[i] = u_old[i] - courant * (u_old[i] - u_old[i - 1])
-    end
-    return u_new
+    return ThermofluidExercise.N01.upwind_step!(u_new, u_old, c, dt, dx)
 end
 
 """
@@ -122,16 +114,7 @@ end
 N01授業の中心差分と安定性の比較を参照する。配布状態では内部点の未実装エラーで停止する。
 """
 function centered_step!(u_new, u_old, c::Real, dt::Real, dx::Real)
-    # 計算や書込みの前に、入力条件をまとめて確認する。
-    validate_step_inputs(u_new, u_old, c, dt, dx)
-    # courantは1ステップで進む格子幅の割合を表すCFL数です。
-    courant = c * dt / dx
-    # copyto!で古い値を複製し、内部を更新する間も両端点の値を保ちます。
-    copyto!(u_new, u_old)
-    for i in 2:(length(u_old) - 1)
-        u_new[i] = u_old[i] - courant / 2 * (u_old[i + 1] - u_old[i - 1])
-    end
-    return u_new
+    return ThermofluidExercise.N01.centered_step!(u_new, u_old, c, dt, dx)
 end
 
 # === 境界条件と時間発展の流れ ===
@@ -151,11 +134,7 @@ end
 境界を書き換えた入力 `u`。
 """
 function apply_boundary!(u::AbstractVector{<:Real}; left_value::Real = 1.0)
-    # 計算や書込みの前に、入力条件をまとめて確認する。
-    validate_boundary_inputs(u, left_value)
-    u[1] = left_value
-    u[end] = u[end - 1]
-    return u
+    return ThermofluidExercise.N01.apply_boundary!(u; left_value)
 end
 
 """

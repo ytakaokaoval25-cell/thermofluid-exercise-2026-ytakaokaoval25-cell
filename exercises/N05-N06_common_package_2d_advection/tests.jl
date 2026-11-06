@@ -35,12 +35,38 @@ end
     @test new≈[1.6 1.7 3.4 3.3; 5.9 6.4 6.3 7.4; 9.6 9.7 11.4 11.3]
 end
 @testset "N06 自作: 複数ステップの保存量" begin
-    # TODO: 非対称・非定数場を複数ステップ進め、保存量を確認する。
-    @test false
+    old = Float64[1 2 5 4; 7 3 8 6; 11 10 9 12; 13 16 14 15; 20 17 19 18]
+    new = similar(old)
+    initial_sum = sum(old)
+    for _ in 1:25
+        ThermofluidExercise.N06.advection_step!(
+            new, old, 0.05, 0.4, 0.25; cx = 1.0, cy = 0.5,
+        )
+        old, new = new, old
+    end
+    tolerance = 100eps(Float64) * max(1.0, abs(initial_sum)) * 25
+    @test isapprox(sum(old), initial_sum; atol = tolerance, rtol = 0)
 end
 @testset "N06 自作: 3格子の解析解誤差と収束" begin
-    # TODO: 公式3格子で誤差が減少し、両区間が約1次収束することを確認する。
-    @test false
+    u0(x, y) = 1 + 0.2sin(pi * x) + 0.3cos(2pi * y) + 0.1sin(pi * x + 2pi * y)
+    exact(x, y, t) = [u0(mod(xi - t, 2.0), mod(yj - 0.5t, 1.0)) for xi in x, yj in y]
+    errors = Float64[]
+    for (nx, ny) in ((40, 30), (80, 60), (160, 120))
+        dx, dy = 2 / nx, 1 / ny
+        x, y = collect((0:(nx - 1)) .* dx), collect((0:(ny - 1)) .* dy)
+        old = exact(x, y, 0.0)
+        new = similar(old)
+        dt_max = ThermofluidExercise.N06.stable_timestep(1.0, 0.5, dx, dy)
+        steps, dt = ThermofluidExercise.fit_timestep(dt_max, 1.0)
+        for _ in 1:steps
+            ThermofluidExercise.N06.advection_step!(new, old, dt, dx, dy)
+            old, new = new, old
+        end
+        push!(errors, sqrt(sum(abs2, old - exact(x, y, 1.0)) / length(old)))
+    end
+    orders = log2.(errors[1:2] ./ errors[2:3])
+    @test all(diff(errors) .< 0)
+    @test all(0.8 .<= orders .<= 1.2)
 end
 module N0506OutputChecks
 include("provided_support.jl")

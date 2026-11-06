@@ -21,10 +21,10 @@ include("provided_support.jl")
 保存場の平均を使って空間分散を求める。未完成のnothingは段階実行のために基本診断だけを保存するが、作図と必修完了検査は失敗する。
 """
 function spatial_variance(u)
-    # TODO(N06): 保存場の平均を使って空間分散を求める。
-    # 段階実行の例外: 基本診断は保存し、diagnostics_complete=falseで未完成を示す。
-    # 分散が完成するまで作図と必修完了検査は失敗する。
-    return nothing
+    u isa AbstractArray{<:Real} && !isempty(u) && all(isfinite, u) ||
+        throw(ArgumentError("uは有限値を持つ空でない実数配列です"))
+    average = sum(u) / length(u)
+    return Float64(sum(value -> abs2(value - average), u) / length(u))
 end
 
 """

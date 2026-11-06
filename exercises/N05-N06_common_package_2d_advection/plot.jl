@@ -4,8 +4,8 @@ module N06Plots
 include("provided_support.jl")
 using Plots
 # 学生の編集対象: 物理条件・診断値を変えずに表示だけを調整する。
-const COLORMAP = :viridis
-const COLOR_LIMITS = (0.4, 1.6)
+const COLORMAP = :plasma
+const COLOR_LIMITS = (0.35, 1.65)
 const DISPLAY_CASE = "n080x060"
 
 """
