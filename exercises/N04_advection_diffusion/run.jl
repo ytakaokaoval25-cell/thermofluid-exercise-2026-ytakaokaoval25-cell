@@ -2,6 +2,7 @@
 # 読む順: 流束 → 刻み → 1ステップ → simulate → main。入力検証・解析解・描画は提供済み。
 module N04AdvectionDiffusion
 const SELECTED_MODEL = :linear
+import ThermofluidExercise
 include("provided_support.jl")
 export SELECTED_MODEL,
     advective_flux,
@@ -73,10 +74,7 @@ end
 入力検証は提供済み。[N04課題「離散化と時間刻み」](https://t2lab-it.github.io/thermofluid-exercise-2026/assignments/N04.html#discretization)を参照する。配布状態では検証後に未実装エラーで停止する。
 """
 function stable_timestep(max_speed, dx, diffusivity; safety = 0.8)
-    validate_timestep_inputs(max_speed, dx, diffusivity, safety)
-    return checked_timestep(
-        safety / (max_speed / dx + 2diffusivity / dx^2),
-    )
+    return ThermofluidExercise.N04.stable_timestep(max_speed, dx, diffusivity; safety)
 end
 
 """
@@ -126,22 +124,9 @@ function advection_diffusion_step!(
     advection = true,
     speed = 1.0,
 )
-    # 計算や書込みの前に、入力条件をまとめて確認する。
-    validate_step(u_new, u_old, dt, dx, diffusivity, model, advection, speed)
-    for i in eachindex(u_old)
-        i_minus = i == firstindex(u_old) ? lastindex(u_old) : i - 1
-        i_plus = i == lastindex(u_old) ? firstindex(u_old) : i + 1
-        advection_term = advection ?
-            -(dt / dx) * (
-                advective_flux(u_old[i]; model, speed) -
-                advective_flux(u_old[i_minus]; model, speed)
-            ) : 0.0
-        diffusion_term = diffusivity * dt / dx^2 * (
-            u_old[i_plus] - 2u_old[i] + u_old[i_minus]
-        )
-        u_new[i] = u_old[i] + advection_term + diffusion_term
-    end
-    return u_new
+    return ThermofluidExercise.N04.advection_diffusion_step!(
+        u_new, u_old, dt, dx, diffusivity; model, advection, speed,
+    )
 end
 
 """
